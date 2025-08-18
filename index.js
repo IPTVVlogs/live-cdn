@@ -3,62 +3,70 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ===== Replace this with your restricted M3U8 URL =====
-const RESTRICTED_M3U8_URL = 'https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/variant/VE1AO1NTbu8mbv12LxEWM21ycrNWYyR3LwczMhRTYlRGNiNWZtQTNjlTLjVWZ00iM3QTZtImYhdTY0QTZ/master.m3u8';
-
-// Serve DPlayer page
+// Serve the player page
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <title>DPlayer Restricted Stream</title>
+      <title>Multi M3U8 Restricted Player</title>
       <link rel="stylesheet" href="https://unpkg.com/dplayer/dist/DPlayer.min.css" />
       <script src="https://unpkg.com/dplayer/dist/DPlayer.min.js"></script>
       <style>
-        body { display:flex; justify-content:center; align-items:center; height:100vh; margin:0; background:#000; color:#fff; }
-        #player { width:90%; max-width:800px; height:450px; }
+        body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; background:#000; color:#fff; }
+        #player { width:90%; max-width:800px; height:450px; margin-top:20px; }
+        input, button { font-size:16px; padding:8px; margin-top:10px; width:80%; max-width:800px; }
       </style>
     </head>
     <body>
+      <h1>Restricted M3U8 Player</h1>
+      <input id="url" type="text" placeholder="Enter restricted M3U8 URL here" />
+      <button onclick="playVideo()">Play</button>
       <div id="player"></div>
+
       <script>
-        new DPlayer({
-          container: document.getElementById('player'),
-          autoplay: true,
-          video: {
-            url: '/proxy?url=${encodeURIComponent(RESTRICTED_M3U8_URL)}',
-            type: 'hls'
-          }
-        });
+        let dp;
+        function playVideo() {
+          const url = document.getElementById('url').value.trim();
+          if(!url) return alert('Enter a valid M3U8 URL');
+
+          if(dp) dp.destroy();
+
+          dp = new DPlayer({
+            container: document.getElementById('player'),
+            autoplay: true,
+            video: {
+              url: '/proxy?url=' + encodeURIComponent(url),
+              type: 'hls'
+            }
+          });
+        }
       </script>
     </body>
     </html>
   `);
 });
 
-// Robust proxy route
+// Proxy route for playlist + TS segments
 app.get('/proxy', async (req, res) => {
   const url = req.query.url;
-  if (!url) return res.status(400).send('Missing URL');
+  if(!url) return res.status(400).send('Missing URL');
 
   try {
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       'Referer': url,
-      // Add more headers if the stream requires them, like cookies:
-      // 'Cookie': 'YOUR_COOKIE_HERE'
+      // Add 'Cookie' header here if needed for restricted streams
+      // 'Cookie': 'session=abc123; other=xyz'
     };
 
     const response = await fetch(url, { headers });
     const contentType = response.headers.get('content-type');
-
     res.set('Content-Type', contentType || 'application/vnd.apple.mpegurl');
 
-    // Stream the response directly to the client
     response.body.pipe(res);
-  } catch (err) {
+  } catch(err) {
     res.status(500).send('Error fetching restricted stream');
   }
 });
