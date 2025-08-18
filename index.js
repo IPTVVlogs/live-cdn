@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve the HTML page with Video.js player
+// Serve HTML page
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
       </style>
     </head>
     <body>
-      <h1>Restricted M3U8 Player (Video.js)</h1>
+      <h1>Restricted M3U8 Player</h1>
       <input id="url" type="text" placeholder="Enter restricted M3U8 URL" />
       <button onclick="playVideo()">Play</button>
       <video id="player" class="video-js vjs-default-skin" controls autoplay></video>
@@ -47,24 +47,25 @@ app.get('/', (req, res) => {
 // Proxy route for playlist + TS segments
 app.get('/proxy', async (req, res) => {
   const url = req.query.url;
-  if(!url) return res.status(400).send('Missing URL');
+  if (!url) return res.status(400).send('Missing URL');
 
   try {
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       'Referer': url,
-      // Add cookies if needed for restricted streams
-      // 'Cookie': 'session=abc123; other=xyz'
+      // Add cookies if required:
+      // 'Cookie': 'session=YOUR_SESSION; other=XYZ'
     };
 
     const response = await fetch(url, { headers });
     const contentType = response.headers.get('content-type');
     res.set('Content-Type', contentType || 'application/vnd.apple.mpegurl');
 
+    // Forward the playlist or TS stream
     response.body.pipe(res);
-  } catch(err) {
+  } catch (err) {
     console.error(err);
-    res.status(500).send('Error fetching restricted stream');
+    res.status(500).send('Failed to fetch stream. Check URL, headers, cookies, or geo-restriction.');
   }
 });
 
