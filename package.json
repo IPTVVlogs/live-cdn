@@ -2,7 +2,6 @@
   "name": "m3u8-player",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "start": "node index.js"
   },
@@ -11,6 +10,6 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "node-fetch": "^3.4.1"
+    "node-fetch": "^2.6.12"
   }
 }
