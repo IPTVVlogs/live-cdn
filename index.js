@@ -3,45 +3,35 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve DPlayer page with input box
+// ===== Replace this with your restricted M3U8 URL =====
+const RESTRICTED_M3U8_URL = 'https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/variant/VE1AO1NTbu8mbv12LxEWM21ycrNWYyR3LwczMhRTYlRGNiNWZtQTNjlTLjVWZ00iM3QTZtImYhdTY0QTZ/master.m3u8';
+
+// Serve DPlayer page
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <title>DPlayer Dynamic Restricted Stream</title>
+      <title>DPlayer Auto-Play Restricted Stream</title>
       <link rel="stylesheet" href="https://unpkg.com/dplayer/dist/DPlayer.min.css" />
       <script src="https://unpkg.com/dplayer/dist/DPlayer.min.js"></script>
       <style>
-        body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; background:#000; color:#fff; }
-        #player { width:90%; max-width:800px; height:450px; margin-top:20px; }
-        input, button { font-size:16px; padding:8px; margin-top:10px; width:80%; max-width:800px; }
+        body { display:flex; justify-content:center; align-items:center; height:100vh; margin:0; background:#000; color:#fff; }
+        #player { width:90%; max-width:800px; height:450px; }
       </style>
     </head>
     <body>
-      <h1>DPlayer Restricted M3U8</h1>
-      <input id="url" type="text" placeholder="Enter restricted M3U8 URL here" />
-      <button onclick="playVideo()">Play</button>
       <div id="player"></div>
-
       <script>
-        let dp;
-        function playVideo() {
-          const url = document.getElementById('url').value.trim();
-          if(!url) return alert('Enter a valid M3U8 URL');
-
-          if(dp) dp.destroy();
-
-          dp = new DPlayer({
-            container: document.getElementById('player'),
-            autoplay: true,
-            video: {
-              url: '/proxy?url=' + encodeURIComponent(url),
-              type: 'hls'
-            }
-          });
-        }
+        new DPlayer({
+          container: document.getElementById('player'),
+          autoplay: true,
+          video: {
+            url: '/proxy?url=${encodeURIComponent(RESTRICTED_M3U8_URL)}',
+            type: 'hls'
+          }
+        });
       </script>
     </body>
     </html>
@@ -53,11 +43,11 @@ app.use('/proxy', createProxyMiddleware({
   target: 'http://example.com', // placeholder
   changeOrigin: true,
   selfHandleResponse: false,
-  router: (req) => req.query.url, // dynamically forward to the M3U8 URL
+  router: (req) => req.query.url, // forward to the restricted URL
   onProxyReq: (proxyReq) => {
-    // headers to bypass CORS / restrictions
+    // headers to bypass basic restrictions
     proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
-    proxyReq.setHeader('Referer', 'https://example.com'); // optional, can be the stream domain
+    proxyReq.setHeader('Referer', 'https://example.com'); // optional, can match stream domain
   }
 }));
 
