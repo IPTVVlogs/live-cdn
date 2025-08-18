@@ -1,15 +1,11 @@
 {
-  "name": "dplayer-autoplay-proxy",
+  "name": "multi-restricted-m3u8-player",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "engines": {
-    "node": "20.x"
-  },
+  "scripts": { "start": "node index.js" },
+  "engines": { "node": "20.x" },
   "dependencies": {
     "express": "^4.18.2",
-    "http-proxy-middleware": "^2.0.6"
+    "node-fetch": "^2.6.12"
   }
 }
