@@ -1,5 +1,5 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,7 +13,7 @@ app.get('/', (req, res) => {
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <title>DPlayer Auto-Play Restricted Stream</title>
+      <title>DPlayer Restricted Stream</title>
       <link rel="stylesheet" href="https://unpkg.com/dplayer/dist/DPlayer.min.css" />
       <script src="https://unpkg.com/dplayer/dist/DPlayer.min.js"></script>
       <style>
@@ -38,17 +38,29 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Proxy route for M3U8 playlist + TS segments
-app.use('/proxy', createProxyMiddleware({
-  target: 'http://example.com', // placeholder
-  changeOrigin: true,
-  selfHandleResponse: false,
-  router: (req) => req.query.url, // forward to the restricted URL
-  onProxyReq: (proxyReq) => {
-    // headers to bypass basic restrictions
-    proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
-    proxyReq.setHeader('Referer', 'https://example.com'); // optional, can match stream domain
+// Robust proxy route
+app.get('/proxy', async (req, res) => {
+  const url = req.query.url;
+  if (!url) return res.status(400).send('Missing URL');
+
+  try {
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      'Referer': url,
+      // Add more headers if the stream requires them, like cookies:
+      // 'Cookie': 'YOUR_COOKIE_HERE'
+    };
+
+    const response = await fetch(url, { headers });
+    const contentType = response.headers.get('content-type');
+
+    res.set('Content-Type', contentType || 'application/vnd.apple.mpegurl');
+
+    // Stream the response directly to the client
+    response.body.pipe(res);
+  } catch (err) {
+    res.status(500).send('Error fetching restricted stream');
   }
-}));
+});
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
