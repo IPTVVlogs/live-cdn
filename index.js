@@ -1,10 +1,10 @@
-import express from 'express';
-import fetch from 'node-fetch';
+const express = require('express');
+const fetch = require('node-fetch');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Root route serves the player page directly
+// Root route serves HTML player
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -53,9 +53,9 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Proxy route for M3U8
+// Proxy route
 app.get('/proxy', async (req, res) => {
-  const { url } = req.query;
+  const url = req.query.url;
   if (!url) return res.status(400).send('Missing URL');
 
   try {
@@ -68,6 +68,4 @@ app.get('/proxy', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
