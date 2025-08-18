@@ -1,5 +1,5 @@
 {
-  "name": "dplayer-dynamic-proxy",
+  "name": "dplayer-autoplay-proxy",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
