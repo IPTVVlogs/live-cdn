@@ -3,16 +3,16 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve the player page with dynamic URLs
+// Serve the HTML page with Video.js player
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <title>Multi Restricted M3U8 Player</title>
-      <link rel="stylesheet" href="https://unpkg.com/dplayer/dist/DPlayer.min.css" />
-      <script src="https://unpkg.com/dplayer/dist/DPlayer.min.js"></script>
+      <title>Video.js Restricted M3U8 Player</title>
+      <link href="https://vjs.zencdn.net/8.0.4/video-js.css" rel="stylesheet" />
+      <script src="https://vjs.zencdn.net/8.0.4/video.min.js"></script>
       <style>
         body { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; background:#000; color:#fff; }
         #player { width:90%; max-width:800px; height:450px; margin-top:20px; }
@@ -20,27 +20,23 @@ app.get('/', (req, res) => {
       </style>
     </head>
     <body>
-      <h1>Restricted M3U8 Player</h1>
+      <h1>Restricted M3U8 Player (Video.js)</h1>
       <input id="url" type="text" placeholder="Enter restricted M3U8 URL" />
       <button onclick="playVideo()">Play</button>
-      <div id="player"></div>
+      <video id="player" class="video-js vjs-default-skin" controls autoplay></video>
 
       <script>
-        let dp;
+        let player = videojs('player');
+
         function playVideo() {
           const url = document.getElementById('url').value.trim();
           if(!url) return alert('Enter a valid M3U8 URL');
 
-          if(dp) dp.destroy();
-
-          dp = new DPlayer({
-            container: document.getElementById('player'),
-            autoplay: true,
-            video: {
-              url: '/proxy?url=' + encodeURIComponent(url),
-              type: 'hls'
-            }
+          player.src({
+            src: '/proxy?url=' + encodeURIComponent(url),
+            type: 'application/x-mpegURL'
           });
+          player.play();
         }
       </script>
     </body>
@@ -48,24 +44,23 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Robust proxy: handles playlist + TS segments
+// Proxy route for playlist + TS segments
 app.get('/proxy', async (req, res) => {
   const url = req.query.url;
   if(!url) return res.status(400).send('Missing URL');
 
   try {
-    // Forward headers for restricted streams
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       'Referer': url,
-      // Add Cookie if needed for authentication
+      // Add cookies if needed for restricted streams
       // 'Cookie': 'session=abc123; other=xyz'
     };
 
     const response = await fetch(url, { headers });
     const contentType = response.headers.get('content-type');
-
     res.set('Content-Type', contentType || 'application/vnd.apple.mpegurl');
+
     response.body.pipe(res);
   } catch(err) {
     console.error(err);
