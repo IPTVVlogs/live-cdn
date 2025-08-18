@@ -3,14 +3,14 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve the player page
+// Serve the player page with dynamic URLs
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <title>Multi M3U8 Restricted Player</title>
+      <title>Multi Restricted M3U8 Player</title>
       <link rel="stylesheet" href="https://unpkg.com/dplayer/dist/DPlayer.min.css" />
       <script src="https://unpkg.com/dplayer/dist/DPlayer.min.js"></script>
       <style>
@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
     </head>
     <body>
       <h1>Restricted M3U8 Player</h1>
-      <input id="url" type="text" placeholder="Enter restricted M3U8 URL here" />
+      <input id="url" type="text" placeholder="Enter restricted M3U8 URL" />
       <button onclick="playVideo()">Play</button>
       <div id="player"></div>
 
@@ -48,25 +48,27 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Proxy route for playlist + TS segments
+// Robust proxy: handles playlist + TS segments
 app.get('/proxy', async (req, res) => {
   const url = req.query.url;
   if(!url) return res.status(400).send('Missing URL');
 
   try {
+    // Forward headers for restricted streams
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       'Referer': url,
-      // Add 'Cookie' header here if needed for restricted streams
+      // Add Cookie if needed for authentication
       // 'Cookie': 'session=abc123; other=xyz'
     };
 
     const response = await fetch(url, { headers });
     const contentType = response.headers.get('content-type');
-    res.set('Content-Type', contentType || 'application/vnd.apple.mpegurl');
 
+    res.set('Content-Type', contentType || 'application/vnd.apple.mpegurl');
     response.body.pipe(res);
   } catch(err) {
+    console.error(err);
     res.status(500).send('Error fetching restricted stream');
   }
 });
