@@ -1,9 +1,9 @@
 const express = require('express');
-const fetch = require('node-fetch');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Root route serves the player page
+// Root page with DPlayer
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -33,8 +33,7 @@ app.get('/', (req, res) => {
           const url = document.getElementById('url').value.trim();
           if (!url) return alert('Enter a valid M3U8 URL');
 
-          // Destroy previous player if exists
-          if (dp) dp.destroy();
+          if(dp) dp.destroy();
 
           dp = new DPlayer({
             container: document.getElementById('player'),
@@ -42,7 +41,7 @@ app.get('/', (req, res) => {
             video: {
               url: '/proxy?url=' + encodeURIComponent(url),
               type: 'hls',
-            },
+            }
           });
         }
       </script>
@@ -51,21 +50,19 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Proxy route for M3U8
-app.get('/proxy', async (req, res) => {
-  const { url } = req.query;
-  if (!url) return res.status(400).send('Missing URL');
-
-  try {
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-    });
-    const data = await response.text();
-    res.set('Content-Type', 'application/vnd.apple.mpegurl');
-    res.send(data);
-  } catch (err) {
-    res.status(500).send('Error fetching M3U8');
+// Proxy route
+app.use('/proxy', createProxyMiddleware({
+  target: 'http://example.com', // this will be overridden by `req.query.url`
+  changeOrigin: true,
+  selfHandleResponse: false,
+  router: (req) => {
+    const url = req.query.url;
+    if(!url) return 'http://example.com';
+    return url;
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
   }
-});
+}));
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
